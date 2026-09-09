@@ -500,7 +500,7 @@ if st.session_state.role == "team_play":
         
         c1, c2 = st.columns(2)
         with c1:
-            st.markdown(f"<div class='stat-box'>**Points to Gain:**<br><span style='font-size:24px; color:#00e5ff;'>+{convert_amt:.1f} pts</span></div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='stat-box'>**Points to Gain:**<br><span style='font-size:24px; color:#00e5ff;'>+{convert_amt*1.3:.1f} pts</span></div>", unsafe_allow_html=True)
         with c2:
             st.markdown(f"<div class='stat-box'>**Power to Reserve:**<br><span style='font-size:24px; color:#ffea00;'>{keep_amt:.1f} MW</span></div>", unsafe_allow_html=True)
             
