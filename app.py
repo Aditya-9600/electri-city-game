@@ -324,27 +324,39 @@ if st.session_state.role == "admin":
         if st.button(f"📢 BROADCAST CALAMITIES FOR LEVEL {admin_lvl}"):
             if lvl_str not in master_data["levels"]:
                 master_data["levels"][lvl_str] = {}
-            master_data["levels"][lvl_str]["calamities"] = selected_cals
-            master_data["levels"][lvl_str]["revealed"] = True
+                
+            if admin_lvl == 1:
+                # Level 1 is hard-locked to Clear Skies
+                master_data["levels"][lvl_str]["calamities"] = []
+                master_data["levels"][lvl_str]["revealed"] = True
+                st.success("Level 1 is fixed to Clear Skies. Broadcasted automatically!")
+            else:
+                master_data["levels"][lvl_str]["calamities"] = selected_cals
+                # If Admin broadcasts 0 calamities on Level > 1, it revokes the broadcast
+                if len(selected_cals) == 0:
+                    master_data["levels"][lvl_str]["revealed"] = False
+                    st.warning(f"Broadcast revoked for Level {admin_lvl}. Teams are now waiting.")
+                else:
+                    master_data["levels"][lvl_str]["revealed"] = True
+                    st.success(f"Calamities Broadcasted for Level {admin_lvl}!")
+                    
             write_master(master_data)
-            st.success(f"Calamities Broadcasted for Level {admin_lvl}!")
             st.rerun()
             
     st.divider()
     st.subheader(f"Currently Broadcasted for Level {admin_lvl}:")
     
     current_level_data = master_data["levels"].get(lvl_str, {})
-    if not current_level_data.get("revealed", False):
+    if admin_lvl == 1:
+        st.success(f"☀️ Clear Skies! No calamities active for Level 1.")
+    elif not current_level_data.get("revealed", False):
         st.info(f"Nothing broadcasted yet for Level {admin_lvl}. Teams on this level see 'Awaiting Game Master...'")
-    elif len(current_level_data.get("calamities", [])) == 0:
-        st.success(f"☀️ Clear Skies! No calamities active for Level {admin_lvl}.")
     else:
-        for cal in current_level_data["calamities"]:
+        for cal in current_level_data.get("calamities", []):
             st.markdown(f"<div class='calamity-card'>⚠️ {cal}</div>", unsafe_allow_html=True)
             
     st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
-
 # =====================================================================
 #                        PARTICIPATING TEAM VIEW
 # =====================================================================
@@ -455,67 +467,68 @@ if st.session_state.role == "team_play":
         st.divider()
         st.subheader("🌪️ Live Calamity Feed")
         
-        # Load calamities specifically for the team's current level
         level_data = master_data.get("levels", {}).get(team_level_str, {})
         
-        if not level_data.get("revealed", False):
+        # Level 1 bypasses the wait completely
+        if st.session_state.level == 1:
+            active_calamities = []
+            st.success("☀️ Clear Skies! No calamities are active for Level 1.")
+        # Levels > 1 will wait if Admin revoked the broadcast
+        elif not level_data.get("revealed", False):
+            active_calamities = None
             st.warning(f"⏳ Awaiting Game Master to broadcast calamities for Level {st.session_state.level}...")
             if st.button("🔄 Check Master Desk (Refresh)"):
                 st.rerun()
         else:
             active_calamities = level_data.get("calamities", [])
-            
-            if len(active_calamities) == 0:
-                st.success(f"☀️ Clear Skies! No calamities are active for Level {st.session_state.level}.")
+            cal_cols = st.columns(len(active_calamities))
+            for i, cal in enumerate(active_calamities):
+                with cal_cols[i]:
+                    st.markdown(f"<div class='calamity-card'>⚠️ {cal}</div>", unsafe_allow_html=True)
+                        
+        st.divider()
+        st.subheader("📉 Transmission & Grid Factors")
+        t_losses = st.number_input(f"Enter Transmission Losses (in MW) assigned by Master for Level {st.session_state.level}:", min_value=0.0, value=0.0, step=10.0)
+
+        if st.button("⚙️ Execute Grid Calculation"):
+            if active_calamities is None:
+                st.error("Cannot execute yet. Awaiting Game Master to broadcast calamities!")
+            elif total_cost > st.session_state.points:
+                st.error("Over budget.")
+            elif assigned_subs > total_subs:
+                st.error("Too many substations assigned.")
+            elif z1 < 2 or z2 < 2 or z3 < 2 or z4 < 2:
+                st.error("Disqualified! Must maintain at least 2 substations per zone.")
             else:
-                cal_cols = st.columns(len(active_calamities))
-                for i, cal in enumerate(active_calamities):
-                    with cal_cols[i]:
-                        st.markdown(f"<div class='calamity-card'>⚠️ {cal}</div>", unsafe_allow_html=True)
-                        
-            st.divider()
-            st.subheader("📉 Transmission & Grid Factors")
-            t_losses = st.number_input(f"Enter Transmission Losses (in MW) assigned by Master for Level {st.session_state.level}:", min_value=0.0, value=0.0, step=10.0)
+                st.session_state.points -= total_cost
+                for a in ASSETS: st.session_state.inventory[a] += buys[a]
 
-            if st.button("⚙️ Execute Grid Calculation"):
-                if total_cost > st.session_state.points:
-                    st.error("Over budget.")
-                elif assigned_subs > total_subs:
-                    st.error("Too many substations assigned.")
-                elif z1 < 2 or z2 < 2 or z3 < 2 or z4 < 2:
-                    st.error("Disqualified! Must maintain at least 2 substations per zone.")
+                base_demand = 1100
+                mods = [0]*7 
+                for c in active_calamities:
+                    for i in range(7): mods[i] += CALAMITIES[c][i]
+
+                new_demand = base_demand * (1 + (mods[0] / 100))
+                
+                base_gen = 0
+                generators = ["Solar", "Wind", "Hydro", "Coal", "Gas", "Nuclear"]
+                for i, k in enumerate(generators):
+                    base_gen += st.session_state.inventory[k] * ASSETS[k]["mw"] * (1 + (mods[i+1] / 100))
+                
+                total_gen = base_gen + st.session_state.power_reserve
+                effective_gen = total_gen - t_losses
+
+                st.session_state.last_demand = new_demand
+                st.session_state.last_gen = effective_gen
+                
+                if round(effective_gen, 1) < round(new_demand, 1):
+                    st.session_state.stage = "eliminated"
                 else:
-                    st.session_state.points -= total_cost
-                    for a in ASSETS: st.session_state.inventory[a] += buys[a]
-
-                    base_demand = 1100
-                    mods = [0]*7 
-                    for c in active_calamities:
-                        for i in range(7): mods[i] += CALAMITIES[c][i]
-
-                    new_demand = base_demand * (1 + (mods[0] / 100))
+                    st.session_state.last_surplus = max(0.0, round(effective_gen - new_demand, 1))
+                    st.session_state.stage = "surplus_decision"
                     
-                    base_gen = 0
-                    generators = ["Solar", "Wind", "Hydro", "Coal", "Gas", "Nuclear"]
-                    for i, k in enumerate(generators):
-                        base_gen += st.session_state.inventory[k] * ASSETS[k]["mw"] * (1 + (mods[i+1] / 100))
-                    
-                    total_gen = base_gen + st.session_state.power_reserve
-                    effective_gen = total_gen - t_losses
-
-                    st.session_state.last_demand = new_demand
-                    st.session_state.last_gen = effective_gen
-                    
-                    # Rounding fixes microscopic decimal errors and max() prevents negative zero
-                    if round(effective_gen, 1) < round(new_demand, 1):
-                        st.session_state.stage = "eliminated"
-                    else:
-                        st.session_state.last_surplus = max(0.0, round(effective_gen - new_demand, 1))
-                        st.session_state.stage = "surplus_decision"
-                        
-                    save_team_state()
-                    st.rerun()
-
+                save_team_state()
+                st.rerun()
     elif st.session_state.stage == "surplus_decision":
         st.success(f"🎉 **Level {st.session_state.level} Cleared!**")
         st.write(f"**Target Demand:** {st.session_state.last_demand:.1f} MW")
