@@ -523,7 +523,7 @@ if st.session_state.role == "team_play":
         
         st.divider()
         st.subheader("⚖️ Power Conversion Decision")
-        st.write("Decide how much surplus power you want to convert to points (1.3x rate) and how much to keep as Power Reserve for the next round.")
+       st.write("Decide how much surplus power you want to convert to points (1.3x rate) and how much to keep as Power Reserve for the next round.")
         
         if st.session_state.last_surplus > 0.0:
             convert_amt = st.slider("Select Power to Convert (MW):", min_value=0.0, max_value=float(st.session_state.last_surplus), value=float(st.session_state.last_surplus), step=0.1)
@@ -531,16 +531,17 @@ if st.session_state.role == "team_play":
             convert_amt = 0.0
             st.warning("No surplus power available to convert this round.")
             
-        keep_amt = st.session_state.last_surplus - convert_amt*1.3        
+        keep_amt = st.session_state.last_surplus - convert_amt*1.3
+        
         c1, c2 = st.columns(2)
         with c1:
-            st.markdown(f"<div class='stat-box'>**Points to Gain:**<br><span style='font-size:24px; color:#00e5ff;'>+{convert_amt:.1f} pts</span></div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='stat-box'>**Points to Gain:**<br><span style='font-size:24px; color:#00e5ff;'>+{convert_amt*1.3:.1f} pts</span></div>", unsafe_allow_html=True)
         with c2:
-            st.markdown(f"<div class='stat-box'>**Power to Reserve:**<br><span style='font-size:24px; color:#ffea00;'>{keep_amt:.1f} MW</span></div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='stat-box'>**Power to Reserve:**<br><span style='font-size:24px; color:#ffea00;'>{keep_amt*1.3:.1f} MW</span></div>", unsafe_allow_html=True)
             
         if st.button(f"✅ Confirm Decision & Proceed to Level {st.session_state.level + 1}"):
             st.session_state.points += convert_amt*1.3
-            st.session_state.power_reserve = keep_amt
+            st.session_state.power_reserve = keep_amt*1.3
             st.session_state.level += 1 # CRITICAL FIX: Advance to next level locally
             st.session_state.stage = "playing"
             save_team_state()
