@@ -493,19 +493,19 @@ if st.session_state.role == "team_play":
         
         st.divider()
         st.subheader("⚖️ Power Conversion Decision")
-        st.write("Decide how much surplus power you want to convert to points (1x) and how much to keep as Power Reserve for the next round.")
+        st.write("Decide how much surplus power you want to convert to points (1x rate) and how much to keep as Power Reserve for the next round.")
         
         convert_amt = st.slider("Select Power to Convert (MW):", min_value=0.0, max_value=float(st.session_state.last_surplus), value=float(st.session_state.last_surplus), step=1.0)
         keep_amt = st.session_state.last_surplus - convert_amt
         
         c1, c2 = st.columns(2)
         with c1:
-            st.markdown(f"<div class='stat-box'>**Points to Gain:**<br><span style='font-size:24px; color:#00e5ff;'>+{convert_amt * 1.5:.1f} pts</span></div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='stat-box'>**Points to Gain:**<br><span style='font-size:24px; color:#00e5ff;'>+{convert_amt:.1f} pts</span></div>", unsafe_allow_html=True)
         with c2:
             st.markdown(f"<div class='stat-box'>**Power to Reserve:**<br><span style='font-size:24px; color:#ffea00;'>{keep_amt:.1f} MW</span></div>", unsafe_allow_html=True)
             
         if st.button("✅ Confirm Decision & Proceed to Next Round"):
-            st.session_state.points += (convert_amt * 1)
+            st.session_state.points += convert_amt
             st.session_state.power_reserve = keep_amt
             st.session_state.stage = "playing"
             save_team_state()
