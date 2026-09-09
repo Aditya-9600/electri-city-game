@@ -495,7 +495,7 @@ if st.session_state.role == "team_play":
         st.subheader("⚖️ Power Conversion Decision")
         st.write("Decide how much surplus power you want to convert to points (1x rate) and how much to keep as Power Reserve for the next round.")
         
-        convert_amt = st.slider("Select Power to Convert (MW):", min_value=0.0, max_value=float(st.session_state.last_surplus), value=float(st.session_state.last_surplus), step=1.0)
+        convert_amt = st.slider("Select Power to Convert (MW):", min_value=0.0, max_value=float(st.session_state.last_surplus), value=float(st.session_state.last_surplus), step=0.1)
         keep_amt = st.session_state.last_surplus - convert_amt
         
         c1, c2 = st.columns(2)
