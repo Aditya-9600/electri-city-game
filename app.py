@@ -61,7 +61,6 @@ def log_results_to_sheets():
 # ----------------- CONFIGURATION & STYLING -----------------
 st.set_page_config(page_title="Electri-City Server", page_icon="⚡", layout="wide")
 
-# High-Tech Cyberpunk & Electric Sparks CSS
 st.markdown("""
 <style>
     /* Animated Dynamic Background */
@@ -189,56 +188,56 @@ st.markdown("""
 
 # ----------------- GAME DATA -----------------
 ASSETS = {
-    "Solar": {"cost": 150, "mw": 100, "icon": "☀️"}, #[span_0](start_span)[span_0](end_span)
-    "Wind": {"cost": 150, "mw": 100, "icon": "🌬️"}, #[span_1](start_span)[span_1](end_span)
-    "Hydro": {"cost": 300, "mw": 200, "icon": "💧"}, #[span_2](start_span)[span_2](end_span)
-    "Coal": {"cost": 250, "mw": 150, "icon": "🔥"}, #[span_3](start_span)[span_3](end_span)
-    "Gas": {"cost": 250, "mw": 150, "icon": "🔥"}, #[span_4](start_span)[span_4](end_span)
-    "Nuclear": {"cost": 800, "mw": 600, "icon": "☢️"}, #[span_5](start_span)[span_5](end_span)
-    "Substation": {"cost": 10, "mw": 0, "icon": "🏢"} #[span_6](start_span)[span_6](end_span)
+    "Solar": {"cost": 150, "mw": 100, "icon": "☀️"},
+    "Wind": {"cost": 150, "mw": 100, "icon": "🌬️"},
+    "Hydro": {"cost": 300, "mw": 200, "icon": "💧"},
+    "Coal": {"cost": 250, "mw": 150, "icon": "🔥"},
+    "Gas": {"cost": 250, "mw": 150, "icon": "🔥"},
+    "Nuclear": {"cost": 800, "mw": 600, "icon": "☢️"},
+    "Substation": {"cost": 10, "mw": 0, "icon": "🏢"}
 }
 
 CALAMITIES = {
-    "Extreme Heatwave": [20, 10, -10, -5, 0, 0, 0], #[span_7](start_span)[span_7](end_span)
-    "Severe Heat": [15, 5, -5, 0, 0, 5, 0], #[span_8](start_span)[span_8](end_span)
-    "Heavy Monsoon": [10, -15, 5, 15, 0, 0, 0], #[span_9](start_span)[span_9](end_span)
-    "Severe Thunderstorm": [10, -15, 10, 5, -5, 0, 0], #[span_10](start_span)[span_10](end_span)
-    "Cyclone": [15, -20, -15, 5, -5, -5, 0], #[span_11](start_span)[span_11](end_span)
-    "Dense Cloud Cover": [5, -20, 5, 0, 0, 0, 0], #[span_12](start_span)[span_12](end_span)
-    "Continuous Rain": [5, -15, 10, 10, 0, 0, 0], #[span_13](start_span)[span_13](end_span)
-    "Severe Drought": [10, 10, 0, -20, 0, 5, 0], #[span_14](start_span)[span_14](end_span)
-    "Strong Wind Front": [5, -5, 20, 0, 0, 0, 0], #[span_15](start_span)[span_15](end_span)
-    "Calm Weather": [5, 10, -20, 0, 0, 0, 0], #[span_16](start_span)[span_16](end_span)
-    "Clear Sky": [5, 20, 5, 5, 0, 0, 0], #[span_17](start_span)[span_17](end_span)
-    "Cold Wave": [15, -5, 5, 0, 5, 15, 0], #[span_18](start_span)[span_18](end_span)
-    "Extreme Cold": [20, -10, 0, -5, 5, 15, 0], #[span_19](start_span)[span_19](end_span)
-    "River Flood": [10, 0, 0, -15, -5, -5, 0], #[span_20](start_span)[span_20](end_span)
-    "Foggy Weather": [5, -10, -10, 0, 0, 0, 0], #[span_21](start_span)[span_21](end_span)
-    "Dry & Clear": [5, 15, 5, -5, 0, 0, 0], #[span_22](start_span)[span_22](end_span)
-    "Lightning Storm": [10, -15, 5, 0, -10, -5, 0], #[span_23](start_span)[span_23](end_span)
-    "Dust Storm": [10, -20, -15, 0, -5, 0, 0], #[span_24](start_span)[span_24](end_span)
-    "Tropical Depression": [10, -15, 15, 10, 0, 0, 0], #[span_25](start_span)[span_25](end_span)
-    "Mild Warm Spell": [5, 10, 0, 0, 0, 5, 0], #[span_26](start_span)[span_26](end_span)
-    "Renewable Subsidy": [5, 20, 20, 10, -10, -10, -5], #[span_27](start_span)[span_27](end_span)
-    "Nuclear Subsidy": [5, -5, -5, 0, 0, -5, 20], #[span_28](start_span)[span_28](end_span)
-    "Carbon Tax Increase": [10, 10, 10, 5, -20, -15, 0], #[span_29](start_span)[span_29](end_span)
-    "Fuel Tax Hike": [10, 5, 5, 5, -10, -20, 5], #[span_30](start_span)[span_30](end_span)
-    "Construction Material Shortage": [5, -10, -10, -15, -5, 10, -20], #[span_31](start_span)[span_31](end_span)
-    "Fuel Supply Disruption": [10, 10, 10, 5, -15, -20, 5], #[span_32](start_span)[span_32](end_span)
-    "Regional War": [15, 5, 5, 10, -10, -20, -5], #[span_33](start_span)[span_33](end_span)
-    "Global Fuel Price Shock": [10, 10, 10, 5, -10, -20, 5], #[span_34](start_span)[span_34](end_span)
-    "Import Restrictions": [10, -15, -10, 10, -5, -10, -15], #[span_35](start_span)[span_35](end_span)
-    "Infrastructure Investment": [5, 10, 10, 15, 5, 5, 20], #[span_36](start_span)[span_36](end_span)
-    "Electricity Price Surge": [15, 10, 10, 5, -5, -5, 5], #[span_37](start_span)[span_37](end_span)
-    "Industrial Expansion": [20, 5, 5, 10, 10, 15, 5], #[span_38](start_span)[span_38](end_span)
-    "Pollution Regulation": [5, 15, 15, 10, -20, -10, 5], #[span_39](start_span)[span_39](end_span)
-    "National Grid Upgrade": [5, 10, 10, 10, -5, -5, 15], #[span_40](start_span)[span_40](end_span)
-    "Transmission Corridor Restriction": [5, 5, 5, -15, -10, -10, -20], #[span_41](start_span)[span_41](end_span)
-    "Skilled Labour Shortage": [10, -10, -10, -15, 5, 5, -20], #[span_42](start_span)[span_42](end_span)
-    "Major Industrial Accident": [10, 5, 5, 5, -15, -10, 5], #[span_43](start_span)[span_43](end_span)
-    "Rapid Urban Development": [20, 10, 5, 5, 10, 15, 5], #[span_44](start_span)[span_44](end_span)
-    "International Energy Agreement": [5, 15, 15, 10, -10, -10, 10], #[span_45](start_span)[span_45](end_span)
-    "National Energy Emergency": [20, 5, 5, 10, 10, 10, 10] #[span_46](start_span)[span_46](end_span)
+    "Extreme Heatwave": [20, 10, -10, -5, 0, 0, 0],
+    "Severe Heat": [15, 5, -5, 0, 0, 5, 0],
+    "Heavy Monsoon": [10, -15, 5, 15, 0, 0, 0],
+    "Severe Thunderstorm": [10, -15, 10, 5, -5, 0, 0],
+    "Cyclone": [15, -20, -15, 5, -5, -5, 0],
+    "Dense Cloud Cover": [5, -20, 5, 0, 0, 0, 0],
+    "Continuous Rain": [5, -15, 10, 10, 0, 0, 0],
+    "Severe Drought": [10, 10, 0, -20, 0, 5, 0],
+    "Strong Wind Front": [5, -5, 20, 0, 0, 0, 0],
+    "Calm Weather": [5, 10, -20, 0, 0, 0, 0],
+    "Clear Sky": [5, 20, 5, 5, 0, 0, 0],
+    "Cold Wave": [15, -5, 5, 0, 5, 15, 0],
+    "Extreme Cold": [20, -10, 0, -5, 5, 15, 0],
+    "River Flood": [10, 0, 0, -15, -5, -5, 0],
+    "Foggy Weather": [5, -10, -10, 0, 0, 0, 0],
+    "Dry & Clear": [5, 15, 5, -5, 0, 0, 0],
+    "Lightning Storm": [10, -15, 5, 0, -10, -5, 0],
+    "Dust Storm": [10, -20, -15, 0, -5, 0, 0],
+    "Tropical Depression": [10, -15, 15, 10, 0, 0, 0],
+    "Mild Warm Spell": [5, 10, 0, 0, 0, 5, 0],
+    "Renewable Subsidy": [5, 20, 20, 10, -10, -10, -5],
+    "Nuclear Subsidy": [5, -5, -5, 0, 0, -5, 20],
+    "Carbon Tax Increase": [10, 10, 10, 5, -20, -15, 0],
+    "Fuel Tax Hike": [10, 5, 5, 5, -10, -20, 5],
+    "Construction Material Shortage": [5, -10, -10, -15, -5, 10, -20],
+    "Fuel Supply Disruption": [10, 10, 10, 5, -15, -20, 5],
+    "Regional War": [15, 5, 5, 10, -10, -20, -5],
+    "Global Fuel Price Shock": [10, 10, 10, 5, -10, -20, 5],
+    "Import Restrictions": [10, -15, -10, 10, -5, -10, -15],
+    "Infrastructure Investment": [5, 10, 10, 15, 5, 5, 20],
+    "Electricity Price Surge": [15, 10, 10, 5, -5, -5, 5],
+    "Industrial Expansion": [20, 5, 5, 10, 10, 15, 5],
+    "Pollution Regulation": [5, 15, 15, 10, -20, -10, 5],
+    "National Grid Upgrade": [5, 10, 10, 10, -5, -5, 15],
+    "Transmission Corridor Restriction": [5, 5, 5, -15, -10, -10, -20],
+    "Skilled Labour Shortage": [10, -10, -10, -15, 5, 5, -20],
+    "Major Industrial Accident": [10, 5, 5, 5, -15, -10, 5],
+    "Rapid Urban Development": [20, 10, 5, 5, 10, 15, 5],
+    "International Energy Agreement": [5, 15, 15, 10, -10, -10, 10],
+    "National Energy Emergency": [20, 5, 5, 10, 10, 10, 10]
 }
 
 EASY_CALS = ["Dense Cloud Cover", "Continuous Rain", "Calm Weather", "Clear Sky", "Foggy Weather", "Dry & Clear", "Mild Warm Spell", "Renewable Subsidy", "Nuclear Subsidy", "Infrastructure Investment", "National Grid Upgrade", "International Energy Agreement"]
@@ -314,7 +313,7 @@ if st.session_state.role == "admin":
     if not master_data['calamities_revealed']:
         st.info("Nothing broadcasted yet. Teams see 'Awaiting Game Master...'")
     elif len(master_data['active_calamities']) == 0:
-        st.success("☀️ Clear Skies! No calamities for Level 1.") #[span_47](start_span)[span_47](end_span)
+        st.success("☀️ Clear Skies! No calamities for Level 1.")
     else:
         for cal in master_data['active_calamities']:
             st.markdown(f"<div class='calamity-card'>⚠️ {cal}</div>", unsafe_allow_html=True)
@@ -342,14 +341,15 @@ if st.session_state.role == "team_reg":
         if t_name.strip() and p1.strip() and p2.strip() and p1_con.strip() and p2_con.strip():
             st.session_state.team_name = t_name
             
-            # Auto-Load logic to prevent progress loss on refresh
             teams = load_teams()
-            if t_name in teams:
+            # If team exists and has NOT finished/eliminated, resume game
+            if t_name in teams and teams[t_name].get("stage") not in ["finished", "eliminated"]:
                 for k, v in teams[t_name].items():
                     st.session_state[k] = v
                 st.success("Previous session found! Resuming game...")
             else:
-                st.session_state.points = 1800 #[span_48](start_span)[span_48](end_span)
+                # If new team OR they previously finished/failed, start fresh
+                st.session_state.points = 1800
                 st.session_state.level = 1
                 st.session_state.inventory = {k: 0 for k in ASSETS}
                 st.session_state.stage = "playing"
@@ -367,7 +367,6 @@ if st.session_state.role == "team_reg":
     st.stop()
 
 if st.session_state.role == "team_play":
-    # Anti-cheat JS injected into team view
     components.html("""
     <script>
     document.addEventListener("visibilitychange", () => {
@@ -392,8 +391,6 @@ if st.session_state.role == "team_play":
             st.info(f"🔋 Carried Over Power Reserve: {st.session_state.power_reserve:.1f} MW")
 
         st.subheader("🛒 Market Purchases")
-        
-        # LIVE CART VALUE PLACEHOLDER
         cart_display = st.empty()
         
         buy_cols = st.columns(7)
@@ -410,7 +407,6 @@ if st.session_state.role == "team_play":
                 buys[asset] = qty
                 total_cost += qty * details['cost']
 
-        # Update the live cart placeholder
         if total_cost > st.session_state.points:
             cart_display.error(f"❌ OVER BUDGET! Cart: {total_cost} pts | Available: {st.session_state.points:.1f} pts")
         elif total_cost > 0:
@@ -439,7 +435,7 @@ if st.session_state.role == "team_play":
                 st.rerun()
         else:
             if len(master_data['active_calamities']) == 0:
-                st.success("☀️ Clear Skies! No calamities are active for this round.") #[span_49](start_span)[span_49](end_span)
+                st.success("☀️ Clear Skies! No calamities are active for this round.")
             else:
                 cal_cols = st.columns(len(master_data['active_calamities']))
                 for i, cal in enumerate(master_data['active_calamities']):
@@ -468,7 +464,7 @@ if st.session_state.role == "team_play":
 
                     new_demand = base_demand * (1 + (mods[0] / 100))
                     
-                    base_gen = sum([st.session_state.inventory[k] * ASSETS[k]["mw"] * (1 + (mods[i+1] / 100)) for i, k in enumerate(["Solar", "Wind", "Hydro", "Coal", "Gas", "Nuclear"])]) #[span_50](start_span)[span_50](end_span)
+                    base_gen = sum([st.session_state.inventory[k] * ASSETS[k]["mw"] * (1 + (mods[i+1] / 100)) for i, k in enumerate(["Solar", "Wind", "Hydro", "Coal", "Gas", "Nuclear"])])
                     total_gen = base_gen + st.session_state.power_reserve
                     effective_gen = total_gen - t_losses
 
@@ -492,7 +488,7 @@ if st.session_state.role == "team_play":
         
         st.divider()
         st.subheader("⚖️ Power Conversion Decision")
-        st.write("Decide how much surplus power you want to convert to points (1.5x) and how much to keep as Power Reserve for the next round.")
+        st.write("Decide how much surplus power you want to convert to points (1x) and how much to keep as Power Reserve for the next round.")
         
         convert_amt = st.slider("Select Power to Convert (MW):", min_value=0.0, max_value=float(st.session_state.last_surplus), value=float(st.session_state.last_surplus), step=1.0)
         keep_amt = st.session_state.last_surplus - convert_amt
@@ -504,7 +500,7 @@ if st.session_state.role == "team_play":
             st.markdown(f"<div class='stat-box'>**Power to Reserve:**<br><span style='font-size:24px; color:#ffea00;'>{keep_amt:.1f} MW</span></div>", unsafe_allow_html=True)
             
         if st.button("✅ Confirm Decision & Proceed to Next Round"):
-            st.session_state.points += (convert_amt * 1.5)
+            st.session_state.points += (convert_amt * 1)
             st.session_state.power_reserve = keep_amt
             st.session_state.stage = "playing"
             save_team_state()
@@ -530,3 +526,9 @@ if st.session_state.role == "team_play":
         st.subheader("🏁 Data Transmitted Successfully")
         st.write(f"Team **{st.session_state.team_name}**, your final results have been submitted to the Game Master.")
         st.write("Please return to the main assembly area.")
+        
+        st.divider()
+        if st.button("🔄 Play Again / Start New Game"):
+            for key in list(st.session_state.keys()):
+                del st.session_state[key]
+            st.rerun()
