@@ -15,11 +15,18 @@ TEAM_FILE = "teams_database.json"
 def init_master_state():
     if not os.path.exists(STATE_FILE):
         with open(STATE_FILE, "w") as f:
-            json.dump({"level": 1, "calamities_revealed": False, "active_calamities": []}, f)
+            json.dump({"admin_level": 1, "levels": {}}, f)
 
 def read_master():
-    with open(STATE_FILE, "r") as f:
-        return json.load(f)
+    try:
+        with open(STATE_FILE, "r") as f:
+            data = json.load(f)
+            # Auto-Heal old format files to prevent crashing
+            if "levels" not in data:
+                return {"admin_level": 1, "levels": {}}
+            return data
+    except Exception:
+        return {"admin_level": 1, "levels": {}}
 
 def write_master(data):
     with open(STATE_FILE, "w") as f:
@@ -44,6 +51,9 @@ init_master_state()
 # ----------------- GOOGLE SHEETS FUNCTION -----------------
 def log_results_to_sheets():
     url = "https://script.google.com/macros/s/AKfycbwLnXW4LZfjLfxiMA7RCnRxEikOlN6yiV12PXHN5w1y0Fk43AH8h0qOxlanVg2sJzzD/exec"
+    
+    inv = st.session_state.get("inventory", {})
+    
     payload = {
         "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "Team_Name": st.session_state.team_name,
@@ -51,8 +61,19 @@ def log_results_to_sheets():
         "P1_Contact": st.session_state.p1_contact, 
         "Player_2": st.session_state.p2,
         "P2_Contact": st.session_state.p2_contact, 
-        "Final_Points": st.session_state.points,
-        "Level_Reached": st.session_state.level
+        "Status": "Eliminated" if st.session_state.stage == "eliminated" else "Finished",
+        "Level_Reached": st.session_state.level,
+        "Final_Points": round(st.session_state.points, 1),
+        "Power_Reserve_MW": round(st.session_state.get("power_reserve", 0.0), 1),
+        "Last_Target_Demand": round(st.session_state.get("last_demand", 0.0), 1),
+        "Last_Total_Generation": round(st.session_state.get("last_gen", 0.0), 1),
+        "Total_Solar": inv.get("Solar", 0),
+        "Total_Wind": inv.get("Wind", 0),
+        "Total_Hydro": inv.get("Hydro", 0),
+        "Total_Coal": inv.get("Coal", 0),
+        "Total_Gas": inv.get("Gas", 0),
+        "Total_Nuclear": inv.get("Nuclear", 0),
+        "Total_Substations": inv.get("Substation", 0)
     }
     try:
         requests.post(url, json=payload, timeout=10)
@@ -142,7 +163,7 @@ st.markdown("""
         box-shadow: 0 0 25px rgba(255, 0, 60, 0.3);
     }
     
-    /* Floating Sparks (Background Elements) */
+    /* Floating Sparks */
     .spark {
         position: fixed;
         bottom: -50px;
@@ -156,7 +177,6 @@ st.markdown("""
         opacity: 0;
     }
     
-    /* Randomize Spark Positions & Speeds */
     .spark:nth-child(1) { left: 10%; animation-duration: 4s; animation-delay: 1s; }
     .spark:nth-child(2) { left: 20%; animation-duration: 6s; animation-delay: 2s; }
     .spark:nth-child(3) { left: 30%; animation-duration: 3s; animation-delay: 0.5s; }
@@ -178,7 +198,6 @@ st.markdown("""
         100% { transform: translateY(-100vh) scale(0); opacity: 0; }
     }
     
-    /* Keep Main Content Above Sparks */
     .block-container { z-index: 2; position: relative; }
 </style>
 
@@ -193,8 +212,8 @@ ASSETS = {
     "Solar": {"cost": 150, "mw": 100, "icon": "☀️"},
     "Wind": {"cost": 150, "mw": 100, "icon": "🌬️"},
     "Hydro": {"cost": 300, "mw": 200, "icon": "💧"},
-    "Coal": {"cost": 250, "mw": 170, "icon": "🔥"},
-    "Gas": {"cost": 250, "mw": 170, "icon": "🔥"},
+    "Coal": {"cost": 250, "mw": 150, "icon": "🔥"},
+    "Gas": {"cost": 250, "mw": 150, "icon": "🔥"},
     "Nuclear": {"cost": 800, "mw": 600, "icon": "☢️"},
     "Substation": {"cost": 10, "mw": 0, "icon": "🏢"}
 }
@@ -280,41 +299,47 @@ if st.session_state.role == "admin":
     st.error("⚠️ ONLY ONE COMPUTER SHOULD HAVE THIS SCREEN OPEN.")
     
     master_data = read_master()
-    st.subheader(f"Current Global Round: Level {master_data['level']}")
     
     col1, col2 = st.columns(2)
     with col1:
-        new_lvl = st.number_input("Change Level Number:", min_value=1, value=master_data['level'])
-        if st.button("Update Level"):
-            master_data['level'] = new_lvl
-            master_data['calamities_revealed'] = False
-            master_data['active_calamities'] = []
+        # Master decides which level they are broadcasting for
+        admin_lvl = st.number_input("Configure Calamities For Level:", min_value=1, value=master_data.get("admin_level", 1))
+        
+        # Save admin's current view level
+        if admin_lvl != master_data.get("admin_level", 1):
+            master_data["admin_level"] = admin_lvl
             write_master(master_data)
-            st.success("Level Updated Globally!")
             st.rerun()
             
     with col2:
         st.write("---")
-        st.write("**Manual Calamity Selection:**")
+        st.write(f"**Manual Calamity Selection for Level {admin_lvl}:**")
+        
+        lvl_str = str(admin_lvl)
+        existing_cals = master_data["levels"].get(lvl_str, {}).get("calamities", [])
         
         all_cals = list(CALAMITIES.keys())
-        selected_cals = st.multiselect("Select Calamities to Broadcast:", all_cals, default=master_data['active_calamities'])
+        selected_cals = st.multiselect("Select Calamities to Broadcast:", all_cals, default=existing_cals)
         
-        if st.button("📢 BROADCAST SELECTED CALAMITIES"):
-            master_data['active_calamities'] = selected_cals
-            master_data['calamities_revealed'] = True
+        if st.button(f"📢 BROADCAST CALAMITIES FOR LEVEL {admin_lvl}"):
+            if lvl_str not in master_data["levels"]:
+                master_data["levels"][lvl_str] = {}
+            master_data["levels"][lvl_str]["calamities"] = selected_cals
+            master_data["levels"][lvl_str]["revealed"] = True
             write_master(master_data)
-            st.success("Calamities Broadcasted to all teams!")
+            st.success(f"Calamities Broadcasted for Level {admin_lvl}!")
             st.rerun()
             
     st.divider()
-    st.subheader("Currently Broadcasted Calamities:")
-    if not master_data['calamities_revealed']:
-        st.info("Nothing broadcasted yet. Teams see 'Awaiting Game Master...'")
-    elif len(master_data['active_calamities']) == 0:
-        st.success("☀️ Clear Skies! No calamities active.")
+    st.subheader(f"Currently Broadcasted for Level {admin_lvl}:")
+    
+    current_level_data = master_data["levels"].get(lvl_str, {})
+    if not current_level_data.get("revealed", False):
+        st.info(f"Nothing broadcasted yet for Level {admin_lvl}. Teams on this level see 'Awaiting Game Master...'")
+    elif len(current_level_data.get("calamities", [])) == 0:
+        st.success(f"☀️ Clear Skies! No calamities active for Level {admin_lvl}.")
     else:
-        for cal in master_data['active_calamities']:
+        for cal in current_level_data["calamities"]:
             st.markdown(f"<div class='calamity-card'>⚠️ {cal}</div>", unsafe_allow_html=True)
             
     st.markdown("</div>", unsafe_allow_html=True)
@@ -346,7 +371,7 @@ if st.session_state.role == "team_reg":
                     st.session_state[k] = v
                     
                 if st.session_state.stage in ["finished", "eliminated"]:
-                    st.warning("Session restored. This team has already concluded their run.")
+                    st.warning("Session restored. This team has already concluded their run and is locked.")
                 else:
                     st.success("Previous session found! Resuming game...")
             else:
@@ -377,12 +402,12 @@ if st.session_state.role == "team_play":
     """, height=0)
 
     master_data = read_master()
-    current_level = master_data['level']
+    team_level_str = str(st.session_state.level)
     
     if st.session_state.stage == "playing":
         c1, c2, c3 = st.columns([2, 1, 1])
         with c1:
-            st.title(f"🏙️ Level {current_level} - {st.session_state.team_name}")
+            st.title(f"🏙️ Level {st.session_state.level} - {st.session_state.team_name}")
         with c2:
             st.markdown(f"<div class='stat-box'><h4 style='margin:0'>💰 Budget</h4><h3 style='margin:0;color:#00e5ff;'>{st.session_state.points:.1f} pts</h3></div>", unsafe_allow_html=True)
         with c3:
@@ -430,22 +455,27 @@ if st.session_state.role == "team_play":
         st.divider()
         st.subheader("🌪️ Live Calamity Feed")
         
-        if not master_data['calamities_revealed']:
-            st.warning("⏳ Awaiting Game Master to broadcast calamities for this round...")
+        # Load calamities specifically for the team's current level
+        level_data = master_data.get("levels", {}).get(team_level_str, {})
+        
+        if not level_data.get("revealed", False):
+            st.warning(f"⏳ Awaiting Game Master to broadcast calamities for Level {st.session_state.level}...")
             if st.button("🔄 Check Master Desk (Refresh)"):
                 st.rerun()
         else:
-            if len(master_data['active_calamities']) == 0:
-                st.success("☀️ Clear Skies! No calamities are active for this round.")
+            active_calamities = level_data.get("calamities", [])
+            
+            if len(active_calamities) == 0:
+                st.success(f"☀️ Clear Skies! No calamities are active for Level {st.session_state.level}.")
             else:
-                cal_cols = st.columns(len(master_data['active_calamities']))
-                for i, cal in enumerate(master_data['active_calamities']):
+                cal_cols = st.columns(len(active_calamities))
+                for i, cal in enumerate(active_calamities):
                     with cal_cols[i]:
                         st.markdown(f"<div class='calamity-card'>⚠️ {cal}</div>", unsafe_allow_html=True)
                         
             st.divider()
             st.subheader("📉 Transmission & Grid Factors")
-            t_losses = st.number_input("Enter Transmission Losses (in MW) assigned by Master:", min_value=0.0, value=0.0, step=10.0)
+            t_losses = st.number_input(f"Enter Transmission Losses (in MW) assigned by Master for Level {st.session_state.level}:", min_value=0.0, value=0.0, step=10.0)
 
             if st.button("⚙️ Execute Grid Calculation"):
                 if total_cost > st.session_state.points:
@@ -460,7 +490,7 @@ if st.session_state.role == "team_play":
 
                     base_demand = 1100
                     mods = [0]*7 
-                    for c in master_data['active_calamities']:
+                    for c in active_calamities:
                         for i in range(7): mods[i] += CALAMITIES[c][i]
 
                     new_demand = base_demand * (1 + (mods[0] / 100))
@@ -486,34 +516,35 @@ if st.session_state.role == "team_play":
                     st.rerun()
 
     elif st.session_state.stage == "surplus_decision":
-        st.success(f"🎉 **Round Cleared!**")
+        st.success(f"🎉 **Level {st.session_state.level} Cleared!**")
         st.write(f"**Target Demand:** {st.session_state.last_demand:.1f} MW")
         st.write(f"**Total Generation:** {st.session_state.last_gen:.1f} MW")
         st.info(f"⚡ Total Surplus Power: {st.session_state.last_surplus:.1f} MW")
         
         st.divider()
         st.subheader("⚖️ Power Conversion Decision")
-        st.write("Decide how much surplus power you want to convert to points (1.3x rate) and how much to keep as Power Reserve for the next round.")
+        st.write("Decide how much surplus power you want to convert to points (1x rate) and how much to keep as Power Reserve for the next round.")
         
         convert_amt = st.slider("Select Power to Convert (MW):", min_value=0.0, max_value=float(st.session_state.last_surplus), value=float(st.session_state.last_surplus), step=0.1)
         keep_amt = st.session_state.last_surplus - convert_amt
         
         c1, c2 = st.columns(2)
         with c1:
-            st.markdown(f"<div class='stat-box'>**Points to Gain:**<br><span style='font-size:24px; color:#00e5ff;'>+{convert_amt*1.3:.1f} pts</span></div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='stat-box'>**Points to Gain:**<br><span style='font-size:24px; color:#00e5ff;'>+{convert_amt:.1f} pts</span></div>", unsafe_allow_html=True)
         with c2:
             st.markdown(f"<div class='stat-box'>**Power to Reserve:**<br><span style='font-size:24px; color:#ffea00;'>{keep_amt:.1f} MW</span></div>", unsafe_allow_html=True)
             
-        if st.button("✅ Confirm Decision & Proceed to Next Round"):
-            st.session_state.points += convert_amt*1.3
-            st.session_state.power_reserve = keep_amt*1.3
+        if st.button(f"✅ Confirm Decision & Proceed to Level {st.session_state.level + 1}"):
+            st.session_state.points += convert_amt
+            st.session_state.power_reserve = keep_amt
+            st.session_state.level += 1 # CRITICAL FIX: Advance to next level locally
             st.session_state.stage = "playing"
             save_team_state()
             st.rerun()
 
     elif st.session_state.stage == "eliminated":
         st.error("🚨 **GRID COLLAPSE!** Your power fell below the required threshold.")
-        st.write(f"**Final Level Reached:** {current_level}")
+        st.write(f"**Final Level Reached:** {st.session_state.level}")
         st.write(f"**Target Demand:** {st.session_state.last_demand:.1f} MW")
         st.write(f"**Total Generation:** {st.session_state.last_gen:.1f} MW")
         
