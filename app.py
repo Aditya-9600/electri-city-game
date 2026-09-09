@@ -182,6 +182,7 @@ st.markdown("""
     .block-container { z-index: 2; position: relative; }
 </style>
 
+<!-- Inject Floating Sparks into Background -->
 <div class="spark"></div><div class="spark"></div><div class="spark"></div><div class="spark"></div>
 <div class="spark"></div><div class="spark"></div><div class="spark"></div><div class="spark"></div>
 <div class="spark"></div><div class="spark"></div><div class="spark"></div><div class="spark"></div>
@@ -192,8 +193,8 @@ ASSETS = {
     "Solar": {"cost": 150, "mw": 100, "icon": "☀️"},
     "Wind": {"cost": 150, "mw": 100, "icon": "🌬️"},
     "Hydro": {"cost": 300, "mw": 200, "icon": "💧"},
-    "Coal": {"cost": 250, "mw": 170, "icon": "🔥"},
-    "Gas": {"cost": 250, "mw": 170, "icon": "🔥"},
+    "Coal": {"cost": 250, "mw": 150, "icon": "🔥"},
+    "Gas": {"cost": 250, "mw": 150, "icon": "🔥"},
     "Nuclear": {"cost": 800, "mw": 600, "icon": "☢️"},
     "Substation": {"cost": 10, "mw": 0, "icon": "🏢"}
 }
@@ -340,10 +341,14 @@ if st.session_state.role == "team_reg":
             st.session_state.team_name = t_name
             
             teams = load_teams()
-            if t_name in teams and teams[t_name].get("stage") not in ["finished", "eliminated"]:
+            if t_name in teams:
                 for k, v in teams[t_name].items():
                     st.session_state[k] = v
-                st.success("Previous session found! Resuming game...")
+                    
+                if st.session_state.stage in ["finished", "eliminated"]:
+                    st.warning("Session restored. This team has already concluded their run.")
+                else:
+                    st.success("Previous session found! Resuming game...")
             else:
                 st.session_state.points = 1800
                 st.session_state.level = 1
@@ -460,7 +465,11 @@ if st.session_state.role == "team_play":
 
                     new_demand = base_demand * (1 + (mods[0] / 100))
                     
-                    base_gen = sum([st.session_state.inventory[k] * ASSETS[k]["mw"] * (1 + (mods[i+1] / 100)) for i, k in enumerate(["Solar", "Wind", "Hydro", "Coal", "Gas", "Nuclear"])])
+                    base_gen = 0
+                    generators = ["Solar", "Wind", "Hydro", "Coal", "Gas", "Nuclear"]
+                    for i, k in enumerate(generators):
+                        base_gen += st.session_state.inventory[k] * ASSETS[k]["mw"] * (1 + (mods[i+1] / 100))
+                    
                     total_gen = base_gen + st.session_state.power_reserve
                     effective_gen = total_gen - t_losses
 
@@ -484,14 +493,14 @@ if st.session_state.role == "team_play":
         
         st.divider()
         st.subheader("⚖️ Power Conversion Decision")
-        st.write("Decide how much surplus power you want to convert to points (1x) and how much to keep as Power Reserve for the next round.")
+        st.write("Decide how much surplus power you want to convert to points (1.5x) and how much to keep as Power Reserve for the next round.")
         
         convert_amt = st.slider("Select Power to Convert (MW):", min_value=0.0, max_value=float(st.session_state.last_surplus), value=float(st.session_state.last_surplus), step=1.0)
         keep_amt = st.session_state.last_surplus - convert_amt
         
         c1, c2 = st.columns(2)
         with c1:
-            st.markdown(f"<div class='stat-box'>**Points to Gain:**<br><span style='font-size:24px; color:#00e5ff;'>+{convert_amt * 1:.1f} pts</span></div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='stat-box'>**Points to Gain:**<br><span style='font-size:24px; color:#00e5ff;'>+{convert_amt * 1.5:.1f} pts</span></div>", unsafe_allow_html=True)
         with c2:
             st.markdown(f"<div class='stat-box'>**Power to Reserve:**<br><span style='font-size:24px; color:#ffea00;'>{keep_amt:.1f} MW</span></div>", unsafe_allow_html=True)
             
@@ -522,9 +531,4 @@ if st.session_state.role == "team_play":
         st.subheader("🏁 Data Transmitted Successfully")
         st.write(f"Team **{st.session_state.team_name}**, your final results have been submitted to the Game Master.")
         st.write("Please return to the main assembly area.")
-        
-        st.divider()
-        if st.button("🔄 Play Again / Start New Game"):
-            for key in list(st.session_state.keys()):
-                del st.session_state[key]
-            st.rerun()
+        st.error("Your game session has concluded and is now locked.")
