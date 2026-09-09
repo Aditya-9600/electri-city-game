@@ -1,10 +1,12 @@
 import streamlit as st
 import streamlit.components.v1 as components
-import random
 import json
 import os
 import requests
 from datetime import datetime
+
+# --- ADMIN PASSWORD ---
+ADMIN_PASSWORD = "eesa"
 
 # ----------------- SERVER DATABASE SETUP -----------------
 STATE_FILE = "master_control.json"
@@ -180,7 +182,6 @@ st.markdown("""
     .block-container { z-index: 2; position: relative; }
 </style>
 
-<!-- Inject Floating Sparks into Background -->
 <div class="spark"></div><div class="spark"></div><div class="spark"></div><div class="spark"></div>
 <div class="spark"></div><div class="spark"></div><div class="spark"></div><div class="spark"></div>
 <div class="spark"></div><div class="spark"></div><div class="spark"></div><div class="spark"></div>
@@ -191,8 +192,8 @@ ASSETS = {
     "Solar": {"cost": 150, "mw": 100, "icon": "☀️"},
     "Wind": {"cost": 150, "mw": 100, "icon": "🌬️"},
     "Hydro": {"cost": 300, "mw": 200, "icon": "💧"},
-    "Coal": {"cost": 250, "mw": 150, "icon": "🔥"},
-    "Gas": {"cost": 250, "mw": 150, "icon": "🔥"},
+    "Coal": {"cost": 250, "mw": 170, "icon": "🔥"},
+    "Gas": {"cost": 250, "mw": 170, "icon": "🔥"},
     "Nuclear": {"cost": 800, "mw": 600, "icon": "☢️"},
     "Substation": {"cost": 10, "mw": 0, "icon": "🏢"}
 }
@@ -240,10 +241,6 @@ CALAMITIES = {
     "National Energy Emergency": [20, 5, 5, 10, 10, 10, 10]
 }
 
-EASY_CALS = ["Dense Cloud Cover", "Continuous Rain", "Calm Weather", "Clear Sky", "Foggy Weather", "Dry & Clear", "Mild Warm Spell", "Renewable Subsidy", "Nuclear Subsidy", "Infrastructure Investment", "National Grid Upgrade", "International Energy Agreement"]
-MOD_CALS = ["Severe Heat", "Heavy Monsoon", "Severe Thunderstorm", "Strong Wind Front", "Cold Wave", "River Flood", "Lightning Storm", "Tropical Depression", "Carbon Tax Increase", "Fuel Tax Hike", "Construction Material Shortage", "Import Restrictions", "Electricity Price Surge", "Pollution Regulation", "Skilled Labour Shortage"]
-HARD_CALS = ["Extreme Heatwave", "Cyclone", "Severe Drought", "Extreme Cold", "Dust Storm", "Fuel Supply Disruption", "Regional War", "Global Fuel Price Shock", "Industrial Expansion", "Transmission Corridor Restriction", "Major Industrial Accident", "Rapid Urban Development", "National Energy Emergency"]
-
 # ----------------- SESSION STATE -----------------
 if "role" not in st.session_state:
     st.session_state.role = None
@@ -251,17 +248,26 @@ if "role" not in st.session_state:
 # ----------------- UI: ROLE SELECTION -----------------
 if st.session_state.role is None:
     st.title("⚡ Electri-City Server Connection")
-    st.info("Please select your system role.")
     
     col1, col2 = st.columns(2)
+    
     with col1:
-        if st.button("👑 I am the Game Master (Admin)"):
-            st.session_state.role = "admin"
-            st.rerun()
+        st.markdown("<div class='stat-box'><h3>👑 Game Master (Admin)</h3></div>", unsafe_allow_html=True)
+        pwd = st.text_input("Enter Admin Password:", type="password")
+        if st.button("Login as Admin"):
+            if pwd == ADMIN_PASSWORD:
+                st.session_state.role = "admin"
+                st.rerun()
+            else:
+                st.error("Incorrect Password!")
+                
     with col2:
-        if st.button("🎮 We are a Participating Team"):
+        st.markdown("<div class='stat-box'><h3>🎮 Participating Team</h3></div>", unsafe_allow_html=True)
+        st.write("Teams competing in Electri-City enter here.")
+        if st.button("Go to Team Registration"):
             st.session_state.role = "team_reg"
             st.rerun()
+            
     st.stop()
 
 # =====================================================================
@@ -288,21 +294,13 @@ if st.session_state.role == "admin":
             
     with col2:
         st.write("---")
-        if st.button("🎲 SCRATCH & BROADCAST CALAMITIES"):
-            lvl = master_data['level']
-            num_calamities = lvl - 1
-            
-            if num_calamities <= 0:
-                drawn = []
-            elif num_calamities == 1:
-                drawn = random.sample(EASY_CALS, 1)
-            elif num_calamities == 2:
-                drawn = random.sample(EASY_CALS + MOD_CALS, 2)
-            else:
-                safe_limit = min(num_calamities, len(MOD_CALS + HARD_CALS))
-                drawn = random.sample(MOD_CALS + HARD_CALS, safe_limit)
-                
-            master_data['active_calamities'] = drawn
+        st.write("**Manual Calamity Selection:**")
+        
+        all_cals = list(CALAMITIES.keys())
+        selected_cals = st.multiselect("Select Calamities to Broadcast:", all_cals, default=master_data['active_calamities'])
+        
+        if st.button("📢 BROADCAST SELECTED CALAMITIES"):
+            master_data['active_calamities'] = selected_cals
             master_data['calamities_revealed'] = True
             write_master(master_data)
             st.success("Calamities Broadcasted to all teams!")
@@ -313,7 +311,7 @@ if st.session_state.role == "admin":
     if not master_data['calamities_revealed']:
         st.info("Nothing broadcasted yet. Teams see 'Awaiting Game Master...'")
     elif len(master_data['active_calamities']) == 0:
-        st.success("☀️ Clear Skies! No calamities for Level 1.")
+        st.success("☀️ Clear Skies! No calamities active.")
     else:
         for cal in master_data['active_calamities']:
             st.markdown(f"<div class='calamity-card'>⚠️ {cal}</div>", unsafe_allow_html=True)
@@ -342,13 +340,11 @@ if st.session_state.role == "team_reg":
             st.session_state.team_name = t_name
             
             teams = load_teams()
-            # If team exists and has NOT finished/eliminated, resume game
             if t_name in teams and teams[t_name].get("stage") not in ["finished", "eliminated"]:
                 for k, v in teams[t_name].items():
                     st.session_state[k] = v
                 st.success("Previous session found! Resuming game...")
             else:
-                # If new team OR they previously finished/failed, start fresh
                 st.session_state.points = 1800
                 st.session_state.level = 1
                 st.session_state.inventory = {k: 0 for k in ASSETS}
@@ -430,7 +426,7 @@ if st.session_state.role == "team_play":
         st.subheader("🌪️ Live Calamity Feed")
         
         if not master_data['calamities_revealed']:
-            st.warning("⏳ Awaiting Game Master to reveal calamities for this round...")
+            st.warning("⏳ Awaiting Game Master to broadcast calamities for this round...")
             if st.button("🔄 Check Master Desk (Refresh)"):
                 st.rerun()
         else:
@@ -464,71 +460,4 @@ if st.session_state.role == "team_play":
 
                     new_demand = base_demand * (1 + (mods[0] / 100))
                     
-                    base_gen = sum([st.session_state.inventory[k] * ASSETS[k]["mw"] * (1 + (mods[i+1] / 100)) for i, k in enumerate(["Solar", "Wind", "Hydro", "Coal", "Gas", "Nuclear"])])
-                    total_gen = base_gen + st.session_state.power_reserve
-                    effective_gen = total_gen - t_losses
-
-                    st.session_state.last_demand = new_demand
-                    st.session_state.last_gen = effective_gen
-                    
-                    if effective_gen < new_demand:
-                        st.session_state.stage = "eliminated"
-                    else:
-                        st.session_state.last_surplus = effective_gen - new_demand
-                        st.session_state.stage = "surplus_decision"
-                        
-                    save_team_state()
-                    st.rerun()
-
-    elif st.session_state.stage == "surplus_decision":
-        st.success(f"🎉 **Round Cleared!**")
-        st.write(f"**Target Demand:** {st.session_state.last_demand:.1f} MW")
-        st.write(f"**Total Generation:** {st.session_state.last_gen:.1f} MW")
-        st.info(f"⚡ Total Surplus Power: {st.session_state.last_surplus:.1f} MW")
-        
-        st.divider()
-        st.subheader("⚖️ Power Conversion Decision")
-        st.write("Decide how much surplus power you want to convert to points (1x) and how much to keep as Power Reserve for the next round.")
-        
-        convert_amt = st.slider("Select Power to Convert (MW):", min_value=0.0, max_value=float(st.session_state.last_surplus), value=float(st.session_state.last_surplus), step=1.0)
-        keep_amt = st.session_state.last_surplus - convert_amt
-        
-        c1, c2 = st.columns(2)
-        with c1:
-            st.markdown(f"<div class='stat-box'>**Points to Gain:**<br><span style='font-size:24px; color:#00e5ff;'>+{convert_amt * 1.5:.1f} pts</span></div>", unsafe_allow_html=True)
-        with c2:
-            st.markdown(f"<div class='stat-box'>**Power to Reserve:**<br><span style='font-size:24px; color:#ffea00;'>{keep_amt:.1f} MW</span></div>", unsafe_allow_html=True)
-            
-        if st.button("✅ Confirm Decision & Proceed to Next Round"):
-            st.session_state.points += (convert_amt * 1)
-            st.session_state.power_reserve = keep_amt
-            st.session_state.stage = "playing"
-            save_team_state()
-            st.rerun()
-
-    elif st.session_state.stage == "eliminated":
-        st.error("🚨 **GRID COLLAPSE!** Your power fell below the required threshold.")
-        st.write(f"**Final Level Reached:** {current_level}")
-        st.write(f"**Target Demand:** {st.session_state.last_demand:.1f} MW")
-        st.write(f"**Total Generation:** {st.session_state.last_gen:.1f} MW")
-        
-        if st.button("📤 Submit Final Log"):
-            with st.spinner("Transmitting data to Google Sheets..."):
-                success = log_results_to_sheets()
-                if success:
-                    st.session_state.stage = "finished"
-                    save_team_state()
-                    st.rerun()
-                else:
-                    st.error("Failed to transmit data. Please check connection.")
-                    
-    elif st.session_state.stage == "finished":
-        st.subheader("🏁 Data Transmitted Successfully")
-        st.write(f"Team **{st.session_state.team_name}**, your final results have been submitted to the Game Master.")
-        st.write("Please return to the main assembly area.")
-        
-        st.divider()
-        if st.button("🔄 Play Again / Start New Game"):
-            for key in list(st.session_state.keys()):
-                del st.session_state[key]
-            st.rerun()
+                    base_gen = sum([st.session_state.inventory
