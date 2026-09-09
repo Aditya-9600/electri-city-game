@@ -506,10 +506,11 @@ if st.session_state.role == "team_play":
                     st.session_state.last_demand = new_demand
                     st.session_state.last_gen = effective_gen
                     
-                    if effective_gen < new_demand:
+                    # Rounding fixes microscopic decimal errors and max() prevents negative zero
+                    if round(effective_gen, 1) < round(new_demand, 1):
                         st.session_state.stage = "eliminated"
                     else:
-                        st.session_state.last_surplus = effective_gen - new_demand
+                        st.session_state.last_surplus = max(0.0, round(effective_gen - new_demand, 1))
                         st.session_state.stage = "surplus_decision"
                         
                     save_team_state()
