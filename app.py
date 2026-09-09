@@ -506,7 +506,7 @@ if st.session_state.role == "team_play":
             
         if st.button("✅ Confirm Decision & Proceed to Next Round"):
             st.session_state.points += convert_amt*1.3
-            st.session_state.power_reserve = keep_amt
+            st.session_state.power_reserve = keep_amt*1.3
             st.session_state.stage = "playing"
             save_team_state()
             st.rerun()
