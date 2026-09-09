@@ -532,17 +532,20 @@ if st.session_state.role == "team_play":
             convert_amt = 0.0
             st.warning("No surplus power available to convert this round.")
             
-        keep_amt = st.session_state.last_surplus - convert_amt*1.3
+        # The subtracted power remains 1:1
+        keep_amt = st.session_state.last_surplus - convert_amt
         
         c1, c2 = st.columns(2)
         with c1:
-            st.markdown(f"<div class='stat-box'>**Points to Gain:**<br><span style='font-size:24px; color:#00e5ff;'>+{convert_amt*1.3:.1f} pts</span></div>", unsafe_allow_html=True)
+            # The 1.3x multiplier is applied ONLY to the points display
+            st.markdown(f"<div class='stat-box'>**Points to Gain:**<br><span style='font-size:24px; color:#00e5ff;'>+{convert_amt * 1.3:.1f} pts</span></div>", unsafe_allow_html=True)
         with c2:
-            st.markdown(f"<div class='stat-box'>**Power to Reserve:**<br><span style='font-size:24px; color:#ffea00;'>{keep_amt*1.3:.1f} MW</span></div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='stat-box'>**Power to Reserve:**<br><span style='font-size:24px; color:#ffea00;'>{keep_amt:.1f} MW</span></div>", unsafe_allow_html=True)
             
         if st.button(f"✅ Confirm Decision & Proceed to Level {st.session_state.level + 1}"):
-            st.session_state.points += convert_amt*1.3
-            st.session_state.power_reserve = keep_amt*1.3
+            # The 1.3x multiplier is applied ONLY to the points added to the bank
+            st.session_state.points += (convert_amt * 1.3)
+            st.session_state.power_reserve = keep_amt
             st.session_state.level += 1 
             st.session_state.stage = "playing"
             save_team_state()
