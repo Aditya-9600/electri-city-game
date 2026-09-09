@@ -460,4 +460,71 @@ if st.session_state.role == "team_play":
 
                     new_demand = base_demand * (1 + (mods[0] / 100))
                     
-                    base_gen = sum([st.session_state.inventory
+                    base_gen = sum([st.session_state.inventory[k] * ASSETS[k]["mw"] * (1 + (mods[i+1] / 100)) for i, k in enumerate(["Solar", "Wind", "Hydro", "Coal", "Gas", "Nuclear"])])
+                    total_gen = base_gen + st.session_state.power_reserve
+                    effective_gen = total_gen - t_losses
+
+                    st.session_state.last_demand = new_demand
+                    st.session_state.last_gen = effective_gen
+                    
+                    if effective_gen < new_demand:
+                        st.session_state.stage = "eliminated"
+                    else:
+                        st.session_state.last_surplus = effective_gen - new_demand
+                        st.session_state.stage = "surplus_decision"
+                        
+                    save_team_state()
+                    st.rerun()
+
+    elif st.session_state.stage == "surplus_decision":
+        st.success(f"🎉 **Round Cleared!**")
+        st.write(f"**Target Demand:** {st.session_state.last_demand:.1f} MW")
+        st.write(f"**Total Generation:** {st.session_state.last_gen:.1f} MW")
+        st.info(f"⚡ Total Surplus Power: {st.session_state.last_surplus:.1f} MW")
+        
+        st.divider()
+        st.subheader("⚖️ Power Conversion Decision")
+        st.write("Decide how much surplus power you want to convert to points (1x) and how much to keep as Power Reserve for the next round.")
+        
+        convert_amt = st.slider("Select Power to Convert (MW):", min_value=0.0, max_value=float(st.session_state.last_surplus), value=float(st.session_state.last_surplus), step=1.0)
+        keep_amt = st.session_state.last_surplus - convert_amt
+        
+        c1, c2 = st.columns(2)
+        with c1:
+            st.markdown(f"<div class='stat-box'>**Points to Gain:**<br><span style='font-size:24px; color:#00e5ff;'>+{convert_amt * 1:.1f} pts</span></div>", unsafe_allow_html=True)
+        with c2:
+            st.markdown(f"<div class='stat-box'>**Power to Reserve:**<br><span style='font-size:24px; color:#ffea00;'>{keep_amt:.1f} MW</span></div>", unsafe_allow_html=True)
+            
+        if st.button("✅ Confirm Decision & Proceed to Next Round"):
+            st.session_state.points += (convert_amt * 1.5)
+            st.session_state.power_reserve = keep_amt
+            st.session_state.stage = "playing"
+            save_team_state()
+            st.rerun()
+
+    elif st.session_state.stage == "eliminated":
+        st.error("🚨 **GRID COLLAPSE!** Your power fell below the required threshold.")
+        st.write(f"**Final Level Reached:** {current_level}")
+        st.write(f"**Target Demand:** {st.session_state.last_demand:.1f} MW")
+        st.write(f"**Total Generation:** {st.session_state.last_gen:.1f} MW")
+        
+        if st.button("📤 Submit Final Log"):
+            with st.spinner("Transmitting data to Google Sheets..."):
+                success = log_results_to_sheets()
+                if success:
+                    st.session_state.stage = "finished"
+                    save_team_state()
+                    st.rerun()
+                else:
+                    st.error("Failed to transmit data. Please check connection.")
+                    
+    elif st.session_state.stage == "finished":
+        st.subheader("🏁 Data Transmitted Successfully")
+        st.write(f"Team **{st.session_state.team_name}**, your final results have been submitted to the Game Master.")
+        st.write("Please return to the main assembly area.")
+        
+        st.divider()
+        if st.button("🔄 Play Again / Start New Game"):
+            for key in list(st.session_state.keys()):
+                del st.session_state[key]
+            st.rerun()
