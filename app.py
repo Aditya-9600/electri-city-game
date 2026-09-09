@@ -523,7 +523,7 @@ if st.session_state.role == "team_play":
         
         st.divider()
         st.subheader("⚖️ Power Conversion Decision")
-       st.write("Decide how much surplus power you want to convert to points (1.3x rate) and how much to keep as Power Reserve for the next round.")
+        st.write("Decide how much surplus power you want to convert to points (1.3x rate) and how much to keep as Power Reserve for the next round.")
         
         if st.session_state.last_surplus > 0.0:
             convert_amt = st.slider("Select Power to Convert (MW):", min_value=0.0, max_value=float(st.session_state.last_surplus), value=float(st.session_state.last_surplus), step=0.1)
@@ -542,11 +542,11 @@ if st.session_state.role == "team_play":
         if st.button(f"✅ Confirm Decision & Proceed to Level {st.session_state.level + 1}"):
             st.session_state.points += convert_amt*1.3
             st.session_state.power_reserve = keep_amt*1.3
-            st.session_state.level += 1 # CRITICAL FIX: Advance to next level locally
+            st.session_state.level += 1 
             st.session_state.stage = "playing"
             save_team_state()
             st.rerun()
-
+            
     elif st.session_state.stage == "eliminated":
         st.error("🚨 **GRID COLLAPSE!** Your power fell below the required threshold.")
         st.write(f"**Final Level Reached:** {st.session_state.level}")
