@@ -564,16 +564,13 @@ if st.session_state.role == "team_play":
             save_team_state()
             st.rerun()
 
-    elif st.session_state.stage == "eliminated":
+   elif st.session_state.stage == "eliminated":
         st.error("🚨 **GRID COLLAPSE!** Your power fell below the required threshold.")
         st.write(f"**Final Level Reached:** {st.session_state.level}")
         st.write(f"**Target Demand:** {st.session_state.last_demand:.1f} MW")
         st.write(f"**Total Generation:** {st.session_state.last_gen:.1f} MW")
         
-        def lock_submit():
-            st.session_state.submit_locked = True
-            
-        if st.button("📤 Submit Final Log", on_click=lock_submit, disabled=st.session_state.get("submit_locked", False)):
+        if st.button("📤 Submit Final Log"):
             with st.spinner("Transmitting data to Google Sheets..."):
                 success = log_results_to_sheets()
                 if success:
@@ -581,7 +578,6 @@ if st.session_state.role == "team_play":
                     save_team_state()
                     st.rerun()
                 else:
-                    st.session_state.submit_locked = False
                     st.error("Failed to transmit data. Please check connection.")
                     
     elif st.session_state.stage == "finished":
