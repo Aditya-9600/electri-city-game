@@ -255,7 +255,7 @@ CALAMITIES = {
     "Fuel Tax Hike": [10, 5, 5, 5, -10, -20, 5],
     "Construction Material Shortage": [5, -10, -10, -15, -5, 10, -20],
     "Fuel Supply Disruption": [10, 10, 10, 5, -15, -20, 5],
-    "Regional War": [15, 5, 5, 10, -10, -20, -5],
+    "Regional War": [10, 5, 5, 10, -10, -20, -5],
     "Global Fuel Price Shock": [10, 10, 10, 5, -10, -20, 5],
     "Import Restrictions": [10, -15, -10, 10, -5, -10, -15],
     "Infrastructure Investment": [5, 10, 10, 15, 5, 5, 20],
@@ -564,11 +564,11 @@ if st.session_state.role == "team_play":
             save_team_state()
             st.rerun()
 
-       elif st.session_state.stage == "eliminated":
-            st.error("🚨 **GRID COLLAPSE!** Your power fell below the required threshold.")
-            st.write(f"**Final Level Reached:** {st.session_state.level}")
-            st.write(f"**Target Demand:** {st.session_state.last_demand:.1f} MW")
-            st.write(f"**Total Generation:** {st.session_state.last_gen:.1f} MW")
+    elif st.session_state.stage == "eliminated":
+        st.error("🚨 **GRID COLLAPSE!** Your power fell below the required threshold.")
+        st.write(f"**Final Level Reached:** {st.session_state.level}")
+        st.write(f"**Target Demand:** {st.session_state.last_demand:.1f} MW")
+        st.write(f"**Total Generation:** {st.session_state.last_gen:.1f} MW")
         
         if st.button("📤 Submit Final Log"):
             with st.spinner("Transmitting data to Google Sheets..."):
@@ -580,8 +580,8 @@ if st.session_state.role == "team_play":
                 else:
                     st.error("Failed to transmit data. Please check connection.")
                     
-       elif st.session_state.stage == "finished":
-           st.subheader("🏁 Data Transmitted Successfully")
-           st.write(f"Team **{st.session_state.team_name}**, your final results have been submitted to the Game Master.")
-           st.write("Please return to the main assembly area.")
-           st.error("Your game session has concluded and is now locked.")
+    elif st.session_state.stage == "finished":
+        st.subheader("🏁 Data Transmitted Successfully")
+        st.write(f"Team **{st.session_state.team_name}**, your final results have been submitted to the Game Master.")
+        st.write("Please return to the main assembly area.")
+        st.error("Your game session has concluded and is now locked.")
