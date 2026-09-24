@@ -58,9 +58,7 @@ def log_results_to_sheets():
         "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "Team_Name": st.session_state.team_name,
         "Player_1": st.session_state.p1,
-        "P1_Contact": st.session_state.p1_contact, 
         "Player_2": st.session_state.p2,
-        "P2_Contact": st.session_state.p2_contact, 
         "Status": "Eliminated" if st.session_state.stage == "eliminated" else "Finished",
         "Level_Reached": st.session_state.level,
         "Final_Points": round(st.session_state.points, 1),
@@ -368,10 +366,8 @@ if st.session_state.role == "team_reg":
     c1, c2 = st.columns(2)
     with c1:
         p1 = st.text_input("Player 1 Name:")
-        p1_con = st.text_input("Player 1 Contact Number:")
     with c2:
         p2 = st.text_input("Player 2 Name:")
-        p2_con = st.text_input("Player 2 Contact Number:")
         
     if st.button("🚀 Enter Lobby"):
         if t_name.strip() and p1.strip() and p2.strip() and p1_con.strip() and p2_con.strip():
@@ -394,8 +390,6 @@ if st.session_state.role == "team_reg":
                 st.session_state.power_reserve = 0.0
                 st.session_state.p1 = p1
                 st.session_state.p2 = p2
-                st.session_state.p1_contact = p1_con
-                st.session_state.p2_contact = p2_con
                 save_team_state()
                 
             st.session_state.role = "team_play"
