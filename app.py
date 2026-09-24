@@ -4,53 +4,65 @@ import json
 import os
 import requests
 from datetime import datetime
+from filelock import FileLock
 
 # --- ADMIN PASSWORD ---
 ADMIN_PASSWORD = "eesa"
 
 # ----------------- SERVER DATABASE SETUP -----------------
 STATE_FILE = "master_control.json"
+STATE_LOCK = "master_control.lock"
 TEAM_FILE = "teams_database.json"
+TEAM_LOCK = "teams_database.lock"
 
 def init_master_state():
-    if not os.path.exists(STATE_FILE):
-        with open(STATE_FILE, "w") as f:
-            json.dump({"admin_level": 1, "levels": {}}, f)
+    with FileLock(STATE_LOCK):
+        if not os.path.exists(STATE_FILE):
+            with open(STATE_FILE, "w") as f:
+                json.dump({"admin_level": 1, "levels": {}}, f)
 
 def read_master():
-    try:
-        with open(STATE_FILE, "r") as f:
-            data = json.load(f)
-            # Auto-Heal old format files to prevent crashing
-            if "levels" not in data:
-                return {"admin_level": 1, "levels": {}}
-            return data
-    except Exception:
-        return {"admin_level": 1, "levels": {}}
+    with FileLock(STATE_LOCK):
+        try:
+            with open(STATE_FILE, "r") as f:
+                data = json.load(f)
+                if "levels" not in data:
+                    return {"admin_level": 1, "levels": {}}
+                return data
+        except Exception:
+            return {"admin_level": 1, "levels": {}}
 
 def write_master(data):
-    with open(STATE_FILE, "w") as f:
-        json.dump(data, f)
+    with FileLock(STATE_LOCK):
+        with open(STATE_FILE, "w") as f:
+            json.dump(data, f)
 
 def load_teams():
-    if os.path.exists(TEAM_FILE):
-        with open(TEAM_FILE, "r") as f:
-            return json.load(f)
-    return {}
+    with FileLock(TEAM_LOCK):
+        if os.path.exists(TEAM_FILE):
+            with open(TEAM_FILE, "r") as f:
+                return json.load(f)
+        return {}
 
 def save_team_state():
     if "team_name" in st.session_state:
-        teams = load_teams()
-        keys_to_save = ["points", "level", "inventory", "stage", "power_reserve", "last_demand", "last_gen", "last_surplus", "losses_applied", "p1", "p2", "p1_contact", "p2_contact"]
-        teams[st.session_state.team_name] = {k: st.session_state[k] for k in keys_to_save if k in st.session_state}
-        with open(TEAM_FILE, "w") as f:
-            json.dump(teams, f)
+        with FileLock(TEAM_LOCK):
+            teams = {}
+            if os.path.exists(TEAM_FILE):
+                with open(TEAM_FILE, "r") as f:
+                    teams = json.load(f)
+                    
+            keys_to_save = ["points", "level", "inventory", "stage", "power_reserve", "last_demand", "last_gen", "last_surplus", "losses_applied", "p1", "p2"]
+            teams[st.session_state.team_name] = {k: st.session_state[k] for k in keys_to_save if k in st.session_state}
+            
+            with open(TEAM_FILE, "w") as f:
+                json.dump(teams, f)
 
 init_master_state()
 
 # ----------------- GOOGLE SHEETS FUNCTION -----------------
 def log_results_to_sheets():
-    url = "https://script.google.com/macros/s/AKfycbxD1H74G5483HcPgCsijj_neLEt8Q1h4E_hcoYhBlcNV8VstRyyzymGrzZz-4zAT1hfgQ/exec"
+    url = "https://script.google.com/macros/s/AKfycbwLnXW4LZfjLfxiMA7RCnRxEikOlN6yiV12PXHN5w1y0Fk43AH8h0qOxlanVg2sJzzD/exec"
     
     inv = st.session_state.get("inventory", {})
     
@@ -217,19 +229,19 @@ ASSETS = {
 }
 
 CALAMITIES = {
-    "Extreme Heatwave": [20, 10, -10, -5, 0, 0, 0],
-    "Severe Heat": [15, 5, -5, 0, 0, 5, 0],
+    "Extreme Heatwave": [15, 10, -10, -5, 0, 0, 0],
+    "Severe Heat": [10, 5, -5, 0, 0, 5, 0],
     "Heavy Monsoon": [10, -15, 5, 15, 0, 0, 0],
     "Severe Thunderstorm": [10, -15, 10, 5, -5, 0, 0],
-    "Cyclone": [15, -20, -15, 5, -5, -5, 0],
+    "Cyclone": [10, -20, -15, 5, -5, -5, 0],
     "Dense Cloud Cover": [5, -20, 5, 0, 0, 0, 0],
     "Continuous Rain": [5, -15, 10, 10, 0, 0, 0],
     "Severe Drought": [10, 10, 0, -20, 0, 5, 0],
     "Strong Wind Front": [5, -5, 20, 0, 0, 0, 0],
     "Calm Weather": [5, 10, -20, 0, 0, 0, 0],
     "Clear Sky": [5, 20, 5, 5, 0, 0, 0],
-    "Cold Wave": [15, -5, 5, 0, 5, 15, 0],
-    "Extreme Cold": [20, -10, 0, -5, 5, 15, 0],
+    "Cold Wave": [10, -5, 5, 0, 5, 15, 0],
+    "Extreme Cold": [15, -10, 0, -5, 5, 15, 0],
     "River Flood": [10, 0, 0, -15, -5, -5, 0],
     "Foggy Weather": [5, -10, -10, 0, 0, 0, 0],
     "Dry & Clear": [5, 15, 5, -5, 0, 0, 0],
@@ -247,16 +259,16 @@ CALAMITIES = {
     "Global Fuel Price Shock": [10, 10, 10, 5, -10, -20, 5],
     "Import Restrictions": [10, -15, -10, 10, -5, -10, -15],
     "Infrastructure Investment": [5, 10, 10, 15, 5, 5, 20],
-    "Electricity Price Surge": [15, 10, 10, 5, -5, -5, 5],
-    "Industrial Expansion": [20, 5, 5, 10, 10, 15, 5],
+    "Electricity Price Surge": [10, 10, 10, 5, -5, -5, 5],
+    "Industrial Expansion": [15, 5, 5, 10, 10, 15, 5],
     "Pollution Regulation": [5, 15, 15, 10, -20, -10, 5],
     "National Grid Upgrade": [5, 10, 10, 10, -5, -5, 15],
     "Transmission Corridor Restriction": [5, 5, 5, -15, -10, -10, -20],
     "Skilled Labour Shortage": [10, -10, -10, -15, 5, 5, -20],
     "Major Industrial Accident": [10, 5, 5, 5, -15, -10, 5],
-    "Rapid Urban Development": [20, 10, 5, 5, 10, 15, 5],
+    "Rapid Urban Development": [15, 10, 5, 5, 10, 15, 5],
     "International Energy Agreement": [5, 15, 15, 10, -10, -10, 10],
-    "National Energy Emergency": [20, 5, 5, 10, 10, 10, 10]
+    "National Energy Emergency": [15, 5, 5, 10, 10, 10, 10]
 }
 
 # ----------------- SESSION STATE -----------------
@@ -300,10 +312,8 @@ if st.session_state.role == "admin":
     
     col1, col2 = st.columns(2)
     with col1:
-        # Master decides which level they are broadcasting for
         admin_lvl = st.number_input("Configure Calamities For Level:", min_value=1, value=master_data.get("admin_level", 1))
         
-        # Save admin's current view level
         if admin_lvl != master_data.get("admin_level", 1):
             master_data["admin_level"] = admin_lvl
             write_master(master_data)
@@ -324,13 +334,11 @@ if st.session_state.role == "admin":
                 master_data["levels"][lvl_str] = {}
                 
             if admin_lvl == 1:
-                # Level 1 is hard-locked to Clear Skies
                 master_data["levels"][lvl_str]["calamities"] = []
                 master_data["levels"][lvl_str]["revealed"] = True
                 st.success("Level 1 is fixed to Clear Skies. Broadcasted automatically!")
             else:
                 master_data["levels"][lvl_str]["calamities"] = selected_cals
-                # If Admin broadcasts 0 calamities on Level > 1, it revokes the broadcast
                 if len(selected_cals) == 0:
                     master_data["levels"][lvl_str]["revealed"] = False
                     st.warning(f"Broadcast revoked for Level {admin_lvl}. Teams are now waiting.")
@@ -355,6 +363,7 @@ if st.session_state.role == "admin":
             
     st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
+
 # =====================================================================
 #                        PARTICIPATING TEAM VIEW
 # =====================================================================
@@ -370,12 +379,13 @@ if st.session_state.role == "team_reg":
         p2 = st.text_input("Player 2 Name:")
         
     if st.button("🚀 Enter Lobby"):
-        if t_name.strip() and p1.strip() and p2.strip() and p1_con.strip() and p2_con.strip():
-            st.session_state.team_name = t_name
+        if t_name.strip() and p1.strip() and p2.strip():
+            clean_name = t_name.strip().upper()
+            st.session_state.team_name = clean_name
             
             teams = load_teams()
-            if t_name in teams:
-                for k, v in teams[t_name].items():
+            if clean_name in teams:
+                for k, v in teams[clean_name].items():
                     st.session_state[k] = v
                     
                 if st.session_state.stage in ["finished", "eliminated"]:
@@ -463,11 +473,9 @@ if st.session_state.role == "team_play":
         
         level_data = master_data.get("levels", {}).get(team_level_str, {})
         
-        # Level 1 bypasses the wait completely
         if st.session_state.level == 1:
             active_calamities = []
             st.success("☀️ Clear Skies! No calamities are active for Level 1.")
-        # Levels > 1 will wait if Admin revoked the broadcast
         elif not level_data.get("revealed", False):
             active_calamities = None
             st.warning(f"⏳ Awaiting Game Master to broadcast calamities for Level {st.session_state.level}...")
@@ -523,6 +531,7 @@ if st.session_state.role == "team_play":
                     
                 save_team_state()
                 st.rerun()
+
     elif st.session_state.stage == "surplus_decision":
         st.success(f"🎉 **Level {st.session_state.level} Cleared!**")
         st.write(f"**Target Demand:** {st.session_state.last_demand:.1f} MW")
@@ -539,32 +548,32 @@ if st.session_state.role == "team_play":
             convert_amt = 0.0
             st.warning("No surplus power available to convert this round.")
             
-        # The subtracted power remains 1:1
         keep_amt = st.session_state.last_surplus - convert_amt
         
         c1, c2 = st.columns(2)
         with c1:
-            # The 1.3x multiplier is applied ONLY to the points display
             st.markdown(f"<div class='stat-box'>**Points to Gain:**<br><span style='font-size:24px; color:#00e5ff;'>+{convert_amt * 1.3:.1f} pts</span></div>", unsafe_allow_html=True)
         with c2:
             st.markdown(f"<div class='stat-box'>**Power to Reserve:**<br><span style='font-size:24px; color:#ffea00;'>{keep_amt:.1f} MW</span></div>", unsafe_allow_html=True)
             
         if st.button(f"✅ Confirm Decision & Proceed to Level {st.session_state.level + 1}"):
-            # The 1.3x multiplier is applied ONLY to the points added to the bank
             st.session_state.points += (convert_amt * 1.3)
             st.session_state.power_reserve = keep_amt
             st.session_state.level += 1 
             st.session_state.stage = "playing"
             save_team_state()
             st.rerun()
-            
+
     elif st.session_state.stage == "eliminated":
         st.error("🚨 **GRID COLLAPSE!** Your power fell below the required threshold.")
         st.write(f"**Final Level Reached:** {st.session_state.level}")
         st.write(f"**Target Demand:** {st.session_state.last_demand:.1f} MW")
         st.write(f"**Total Generation:** {st.session_state.last_gen:.1f} MW")
         
-        if st.button("📤 Submit Final Log"):
+        def lock_submit():
+            st.session_state.submit_locked = True
+            
+        if st.button("📤 Submit Final Log", on_click=lock_submit, disabled=st.session_state.get("submit_locked", False)):
             with st.spinner("Transmitting data to Google Sheets..."):
                 success = log_results_to_sheets()
                 if success:
@@ -572,6 +581,7 @@ if st.session_state.role == "team_play":
                     save_team_state()
                     st.rerun()
                 else:
+                    st.session_state.submit_locked = False
                     st.error("Failed to transmit data. Please check connection.")
                     
     elif st.session_state.stage == "finished":
