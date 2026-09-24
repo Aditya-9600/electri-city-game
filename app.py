@@ -62,7 +62,7 @@ init_master_state()
 
 # ----------------- GOOGLE SHEETS FUNCTION -----------------
 def log_results_to_sheets():
-    url = "https://script.google.com/macros/s/AKfycbwLnXW4LZfjLfxiMA7RCnRxEikOlN6yiV12PXHN5w1y0Fk43AH8h0qOxlanVg2sJzzD/exec"
+    url = "https://script.google.com/macros/s/AKfycbxD1H74G5483HcPgCsijj_neLEt8Q1h4E_hcoYhBlcNV8VstRyyzymGrzZz-4zAT1hfgQ/exec"
     
     inv = st.session_state.get("inventory", {})
     
